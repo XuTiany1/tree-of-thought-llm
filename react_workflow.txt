@@ -1,0 +1,53 @@
+
+
+
+
+repeat this process for all indices of examples
+
+
+1. CALL (webthink)
+        r, info = webthink(i, to_print=True)
+    i represents the index
+
+
+        1. reset question and environment
+
+            then also add to prompt the questions
+
+
+        2. loop through a maximum of 8 loops
+
+            1. Ask model to generate thought and action (STOPPING at observation)
+            2. Then strip the thought and action part away from each other
+            3. CALL (step) to search this thing
+                    obs gets the answer
+                    info is an array of 2 that says which step and if I got the answer
+
+            4. Add thought, action, and observation and add it to the prompt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

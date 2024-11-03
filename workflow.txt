@@ -1,0 +1,337 @@
+
+==================================
+self.stops explained -> in the context of text.py
+==================================
+
+self.stops = ['\nPassage:\n', None]
+
+self.stops is initialized as a list with two elements:
+    1. '\nPassage:\n': A string indicating a specific stopping condition, i.e., 
+    the text generation should halt when it encounters this substring.
+    2. None: This indicates no specific stopping condition for that step, 
+    allowing the generation to run to its natural endpoint or any other limit set by the model.
+
+
+Usage of self.stops:
+
+The self.stops list is used in the solve function to guide the stopping behavior 
+of the text generation for each step. 
+Specifically, it is passed to the get_samples function as the stop parameter. 
+Here’s the relevant part from solve:
+new_ys = [get_samples(task, 
+                        x, 
+                        y, 
+                        args.n_generate_sample, 
+                        prompt_sample=args.prompt_sample, 
+                        stop=task.stops[step]) for y in ys]
+    - For each step in the loop (up to task.steps, which is 2 here), 
+    task.stops[step] provides the stopping condition for that step.
+    - In the first step (step=0), stop will be set to '\nPassage:\n', 
+    instructing the model to stop generating text when it reaches this substring.
+    - In the second step (step=1), stop will be set to None, allowing generation 
+    to proceed without an explicit stopping substring.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TextTask Workflow
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Model configuration
+
+    backend='gpt-4', 
+    temperature=0.7, 
+    task='text', 
+    naive_run=False, 
+    prompt_sample='cot', 
+    method_generate='sample',   
+    method_evaluate='vote', 
+    method_select='greedy', 
+    
+    n_generate_sample=4,       
+            -> This prompt GPT to generate 4 samples per node
+            In get_samples....
+            samples = gpt(prompt, n=n_generate_sample, stop=stop)
+
+
+    n_evaluate_sample=3, 
+            -> This prompt GPT to evauluate the single output 3 times (the more the more accurate)
+            In get_values...
+            value_outputs = gpt(value_prompt, n=n_evaluate_sample, stop=None)
+
+
+    n_select_sample=5
+            -> This prompts model to keep 5 candidates PER STEP so more than 5 if there were more parents
+            In solve....
+                if args.method_select == 'sample':
+                    ps = np.array(values) / sum(values)
+                    select_ids = np.random.choice(ids, size=args.n_select_sample, p=ps).tolist()
+                elif args.method_select == 'greedy':
+                    select_ids = sorted(ids, key=lambda x: values[x], reverse=True)[:args.n_select_sample]
+                select_new_ys = [new_ys[select_id] for select_id in select_ids]
+
+
+
+Step 1: 
+------------------------
+Model Generation
+------------------------
+
+Go to here:
+
+        if args.method_generate == 'sample':
+            new_ys = [get_samples(task, 
+                                  x, 
+                                  y, 
+                                  args.n_generate_sample, 
+                                  prompt_sample=args.prompt_sample,         # Chooses either cot or standard
+                                  stop=task.stops[step]) for y in ys]
+#### 
+the new_ys essentially forms a for-loop and calls get_samples for all the current y
+    
+
+
+Calls (get_samples) 
+    0. Call (cot_prompt_wrap)
+    1.  cot prompt around input and current partial solution
+    2. ask gpt with the prompt and generate n_generate_sample responses with the stopping condition being 'Passage:' in this candidates
+
+    Returns current 'y' + the genearted samples as a list
+
+
+Back at solve()
+    1. receive the new_ys
+    2. create a list of ids in a sesparate array 
+
+
+
+
+Step 2: 
+------------------------
+Model Evaluation
+------------------------
+
+Go to here:
+    values = get_votes(task, 
+                        x, 
+                        new_ys, 
+                        args.n_evaluate_sample)
+#### n_evaluate_sample is essentioanlly the number of times I want gpt to evaluate this 
+
+
+Calls (get_votes)
+
+    0. Call (vote_prompt_wrap)
+            Creates a for loop that appends to the end of the prompt
+                Choice i: y
+                Choice i+1: y
+                etc...
+
+    1. ask gpt with the vote prompt and request n_evaluate_sample number of samples, stop being None (so no specified stopping point)
+        the list of evaluation is stored in 'vote_outputs'
+
+    2. Call (vote_outputs_unwrap)
+            initialize an array of all 0 for the list of number of candidates
+            for each evaluation, find their decision and add 1 to the score
+            return the final voted result
+    
+
+
+
+
+
+Step 3: 
+------------------------
+Model Selection
+------------------------
+
+        if args.method_select == 'sample':
+            ps = np.array(values) / sum(values)
+            select_ids = np.random.choice(ids, size=args.n_select_sample, p=ps).tolist()
+        elif args.method_select == 'greedy':
+            select_ids = sorted(ids, key=lambda x: values[x], reverse=True)[:args.n_select_sample]
+        select_new_ys = [new_ys[select_id] for select_id in select_ids]
+
+####
+Text task uses greedy -> honestly pretty straight forward..
+             basically selects n_select_sample samples
+
+
+
+
+
+
+
+
+
+
+
+
+=====================================================================================
+Game24Task
+=====================================================================================
+args = argparse.Namespace(
+    backend='gpt-4', 
+    temperature=0.7, 
+    task='game24', 
+    naive_run=False, 
+    prompt_sample=None, 
+    method_generate='propose', 
+    method_evaluate='value', 
+    method_select='greedy', 
+    n_generate_sample=1, 
+    n_evaluate_sample=3, 
+    n_select_sample=5)
+
+
+
+
+
+self.stops explained -> in the context of game24.py
+
+
+self.stops = ['\n'] * 4
+    This creates a list of four newline ('\n') characters, one for each of the four steps. 
+    Each '\n' indicates that generation should stop when a newline is encountered.
+
+    self.steps is set to 4, which defines the number of steps the task expects to take.
+
+
+
+Step 1: 
+------------------------
+Model Generation
+------------------------
+
+Go to here:
+
+    new_ys = [get_proposals(task, 
+                            x, 
+                            y) for y in ys]
+
+        - This creates a for loop that call (get_proposals) for all input-partial output pair
+
+    1. call (get_proposals)
+
+        call (propose_prompt_wrap) with the x,y pair
+
+                get the current numbers 
+                    if y exist, meaning it is already a partial solution, then use ys
+                    if not, then I am just starting so use x
+
+                checks if I have 24 already -> if so wrap with cot_prompt
+
+                if not, then -> wrap the propose_prompt with the 'current_number' as input to get next steps
+
+    
+
+    2. call gpt  proposals = gpt(propose_prompt, n=1, stop=None)[0].split('\n')
+
+            feeds the propose_prompt
+            set number of generation to be 1 -> but note that I actually get a lot of responses by the nature of prompt
+            I split them by the new line character
+
+
+    3. append the new directions to the current y node as a list 
+
+
+
+Step 2: 
+------------------------
+Model Evaluation
+------------------------
+
+
+go to here:
+
+        elif args.method_evaluate == 'value':
+            values = get_values(task, 
+                                x, 
+                                new_ys, 
+                                args.n_evaluate_sample)
+
+####
+I want the judge to evaluate gpt to evaluate the sample 5 times
+
+
+        1. CALL (get_values)
+
+            init an empty list of values
+            init an empty local_value_cache
+
+            loop over all the cadidates of the new_ys
+
+                if I already have duplicate candidate (which should be stored in local cache)
+
+                    then its value is set to 0 -> so I penalize repetition in thoguht
+                
+                else: 
+
+                    CALL (get_value)
+
+                        CALL value_prompt to wrap around x and y
+                        CALL gpt with thiis prompt
+                            THIS basically reutnrs either sure/likely/impossible
+
+                        CALL value_outputs_unwrap to convert GPT sentences into scores
+
+
+
+
+
+
+
+Step 3: 
+------------------------
+Model Selection
+------------------------
+
+        # SELECTION
+        if args.method_select == 'sample':
+            ps = np.array(values) / sum(values)
+            select_ids = np.random.choice(ids, size=args.n_select_sample, p=ps).tolist()
+        elif args.method_select == 'greedy':
+            select_ids = sorted(ids, key=lambda x: values[x], reverse=True)[:args.n_select_sample]
+        select_new_ys = [new_ys[select_id] for select_id in select_ids]
+
+Basically selects top k
+
+After this step, I prune the tree to a restriected 4 leaves per level
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

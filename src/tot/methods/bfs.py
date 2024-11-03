@@ -104,10 +104,20 @@ def solve(args, task, idx, to_print=True):
         # GENERATION
         if args.method_generate == 'sample':
             # calls get_samples to expand each candidate y in ys.
-            new_ys = [get_samples(task, x, y, args.n_generate_sample, prompt_sample=args.prompt_sample, stop=task.stops[step]) for y in ys]
+            new_ys = [get_samples(task, 
+                                  x, 
+                                  y, 
+                                  args.n_generate_sample, 
+                                  prompt_sample=args.prompt_sample,         # Chooses either cot or standard
+                                  stop=task.stops[step]) for y in ys]
+            
         elif args.method_generate == 'propose':
+
             # calls get_proposals for each candidate.
-            new_ys = [get_proposals(task, x, y) for y in ys]
+            new_ys = [get_proposals(task, 
+                                    x, 
+                                    y) for y in ys]
+
         # Flattens the list of generated candidates (new_ys) into a single list for evaluation.
         new_ys = list(itertools.chain(*new_ys))
         ids = list(range(len(new_ys)))

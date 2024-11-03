@@ -1,0 +1,88 @@
+Step 1: 
+------------------------
+Model Generation
+------------------------
+GOAL: get the (thought + action) pairs of the model 
+
+
+
+
+
+
+Step 2: 
+------------------------
+Model Observation
+------------------------
+For each action, perform the action and append the found knowledge to the prompt
+
+
+
+
+
+Step 3: 
+------------------------
+Model Evaluation
+------------------------
+Use a voting mechanism to vote on which answer trajectory is the most promising and accurate
+
+
+
+
+
+Step 4: 
+------------------------
+Model Selection
+------------------------
+Select the top k
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
