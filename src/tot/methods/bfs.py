@@ -1,7 +1,10 @@
 import itertools
+import wikienv, wrappers
 import numpy as np
 from functools import partial
 from tot.models import gpt
+
+
 
 
 #----------------------------------------------------------------------------------
@@ -12,7 +15,9 @@ from tot.models import gpt
 # retrieves a score (or “value”) for a specific solution candidate
 def get_value(task, x, y, n_evaluate_sample, cache_value=True):
 
-    # task.value_prompt_wrap is a method that takes x (the input) and y (the partial solution) and wraps them into a format suitable for querying gpt.
+    # task.value_prompt_wrap is a method that takes 
+    #   x (the input) and y (the partial solution) and 
+    #   wraps them into a format suitable for querying gpt
     value_prompt = task.value_prompt_wrap(x, y)
     if cache_value and value_prompt in task.value_cache:
         return task.value_cache[value_prompt]
@@ -82,9 +87,138 @@ def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
     return [y + _ for _ in samples]
 
 
+
+
+#----------------------------------------------------------------------------------
+# REACT Functions
+#----------------------------------------------------------------------------------
+
+# Attempts to execute an action within the environment
+def step(env, action):
+    attempts = 0
+    while attempts < 10:
+        try:
+            return env.step(action)
+        except requests.exceptions.Timeout:
+            attempts += 1
+
+def get_proposals_wiki(task, x, y):
+    propose_prompt = task.propose_prompt_wrap(x, y)
+    proposals_text = gpt(propose_prompt, n=1, stop=None)[0]
+    # Parse the proposals
+    proposals = []
+    lines = proposals_text.strip().split('\n')
+    i = 0
+    while i < len(lines):
+        if lines[i].startswith('Thought'):
+            thought = lines[i]
+            i += 1
+            if i < len(lines) and lines[i].startswith('Action'):
+                action = lines[i]
+                proposal = y + thought + '\n' + action + '\n'
+                proposals.append(proposal)
+        i += 1
+    return proposals
+
+
+def get_value_wiki(task, x, y, n_evaluate_sample, cache_value=True):
+    # Extract the last Thought and Action
+    lines = y.strip().split('\n')
+    last_thought = ''
+    last_action = ''
+    for line in reversed(lines):
+        if line.startswith('Action'):
+            last_action = line.split(':', 1)[1].strip()
+        elif line.startswith('Thought'):
+            last_thought = line.split(':', 1)[1].strip()
+            break
+    if not last_thought or not last_action:
+        return 0.0  # Cannot evaluate without Thought and Action
+
+    value_prompt = task.value_prompt_wrap(question=x['question'], thought=last_thought, action=last_action)
+    if cache_value and value_prompt in task.value_cache:
+        return task.value_cache[value_prompt]
+
+    value_outputs = gpt(value_prompt, n=n_evaluate_sample, stop=None)
+    value = task.value_outputs_unwrap(x, y, value_outputs)
+    if cache_value:
+        task.value_cache[value_prompt] = value
+    return value
+
 #----------------------------------------------------------------------------------
 # SOLVE Functions
 #----------------------------------------------------------------------------------
+
+
+def solve_wiki(args, task, idx, to_print=True):
+    # Initialize GPT
+    global gpt
+    gpt = partial(gpt, model=args.backend, temperature=args.temperature)
+
+    # Initialize environment
+    env = wikienv.WikiEnv()
+    env = wrappers.HotPotQAWrapper(env, split="dev")
+    env = wrappers.LoggingWrapper(env)
+    env.reset(idx=idx)
+
+    x = task.get_input(idx)  # Input is {'question': ...}
+    ys = ['']  # Current output candidates
+    infos = []
+    done = False
+
+    for step in range(task.steps):
+        new_ys = []
+        values = []
+        for y in ys:
+            # Generate proposals
+            proposals = get_proposals_wiki(task, x, y)
+            for proposal in proposals:
+                # Execute the Action and get Observation
+                lines = proposal.strip().split('\n')
+                last_action = ''
+                last_thought = ''
+                for line in reversed(lines):
+                    if line.startswith('Action'):
+                        last_action = line.split(':', 1)[1].strip()
+                    elif line.startswith('Thought'):
+                        last_thought = line.split(':', 1)[1].strip()
+                        break
+
+                if last_action:
+                    # Execute action in environment
+                    obs, r, done, info = env.step(last_action)
+                    # Append Observation to proposal
+                    new_y = proposal + f'Observation: {obs}\n'
+                    # Evaluate new_y
+                    value = get_value_wiki(task, x, new_y, args.n_evaluate_sample)
+                    new_ys.append(new_y)
+                    values.append(value)
+                    if done:
+                        # If done (Finish[answer] was executed), we can stop
+                        ys = [new_y]
+                        break
+                else:
+                    continue
+            if done:
+                break
+        if done:
+            break
+
+        # Selection
+        if args.method_select == 'greedy':
+            select_ids = sorted(range(len(new_ys)), key=lambda i: values[i], reverse=True)[:args.n_select_sample]
+        else:
+            # Implement other selection methods as needed
+            select_ids = list(range(len(new_ys)))
+
+        ys = [new_ys[i] for i in select_ids]
+        if to_print:
+            for y, value in zip(ys, values):
+                print(f'Solution:\n{y}\nValue: {value}\n')
+
+    return ys, {'steps': infos}
+
+
 
 def solve(args, task, idx, to_print=True):
 
@@ -92,6 +226,10 @@ def solve(args, task, idx, to_print=True):
     global gpt
     gpt = partial(gpt, model=args.backend, temperature=args.temperature)
     print(gpt)
+
+    env = wikienv.WikiEnv()
+    env = wrappers.HotPotQAWrapper(env, split="dev")        # Wraps env with HotPotQAWrappe
+    env = wrappers.LoggingWrapper(env) 
 
     # Setup input as well as the current solution candidates
     x = task.get_input(idx)  # input

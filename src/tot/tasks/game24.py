@@ -29,6 +29,15 @@ class Game24Task(Task):
         file: a csv file (fixed)
         """
         super().__init__()
+
+# self.data: 
+#   List of puzzles loaded from the CSV file.
+# self.value_cache: 
+#   Dictionary for caching computed values to avoid redundant calculations.
+# self.steps: 
+#   Set to 4, indicating a maximum of 4 steps to solve each puzzle.
+# self.stops: 
+#   A list of stop conditions, here each being a newline character ('\n') for separating steps.
         path = os.path.join(DATA_PATH, '24', file)
         self.data = list(pd.read_csv(path)['Puzzles'])
         self.value_cache = {}
@@ -41,6 +50,7 @@ class Game24Task(Task):
     def get_input(self, idx: int) -> str:
         return self.data[idx]
 
+# Solution Testing
     def test_output(self, idx: int, output: str):
         expression = output.strip().split('\n')[-1].lower().replace('answer: ', '').split('=')[0]
         numbers = re.findall(r'\d+', expression)
@@ -53,25 +63,53 @@ class Game24Task(Task):
         except Exception as e:
             # print(e)
             return {'r': 0}
-            
+
+
+
+#-----------------------------------------------
+# Prompt Wrapping Functions
+#-----------------------------------------------
+
+
+#-----------------------------------------------
+# Prompt Wrapping Functions: Section1 -> Generation step
+#-----------------------------------------------
     @staticmethod
     def standard_prompt_wrap(x: str, y:str='') -> str:
+        # Formats the standard_prompt by inserting the input puzzle 'x' 
+        # and appending any partial solution 'y'
         return standard_prompt.format(input=x) + y
 
     @staticmethod
     def cot_prompt_wrap(x: str, y:str='') -> str:
+        # Similar to standard_prompt_wrap but uses cot_prompt for generating CoT-style prompts.
+        # Encourages the model to first make a plan before providing a solution.
         return cot_prompt.format(input=x) + y
     
+
+#-----------------------------------------------
+# Prompt Wrapping Functions: Section2 -> Proposal step
+#-----------------------------------------------
     @staticmethod
+    # Used in the get_proposals function.
     def propose_prompt_wrap(x: str, y: str='') -> str:
         current_numbers = get_current_numbers(y if y else x)
+
+        # If the current numbers are not yet reduced to 24, it formats the propose_prompt with the remaining numbers.
         if current_numbers == '24':
+
+            # The prompt uses cot_prompt to produce a final output, marking the solution as complete.
             prompt = cot_prompt.format(input=x) + 'Steps:' + y
             # print([prompt])
         else:
+
+            # The prompt uses propose_prompt with current_numbers to generate potential moves that can bring the result closer to 24.
             prompt = propose_prompt.format(input=current_numbers)
         return prompt
     
+#-----------------------------------------------
+# Prompt Wrapping Functions: Section3 -> Evaluation step
+#-----------------------------------------------
     @staticmethod
     def value_prompt_wrap(x: str, y: str) -> str:
         last_line = y.strip().split('\n')[-1]
@@ -82,6 +120,8 @@ class Game24Task(Task):
         current_numbers = get_current_numbers(y)
         return value_prompt.format(input=current_numbers)
     
+
+# Output Scoring
     @staticmethod
     def value_outputs_unwrap(x: str, y: str, value_outputs: list) -> float:
         if len(y.strip().split('\n')) == 4 and 'answer' not in y.lower():

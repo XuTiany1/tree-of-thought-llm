@@ -1,0 +1,17 @@
+The prompts are generally grouped into the following categories based on their purpose in the solution process:
+
+Generation Prompts: Used to generate solutions or initial thoughts.
+	• standard_prompt: Provides a basic, direct instruction to generate an answer in one shot.
+	• cot_prompt (Chain of Thought): Guides the model to think through the answer in steps, adding intermediate reasoning.
+
+Proposal Prompt:
+	• propose_prompt: Used to generate possible next steps or options that could be taken from a current state in a multi-step solution process.
+
+Evaluation Prompts: Used to assess the quality, relevance, or feasibility of generated answers or intermediate steps.
+	• value_prompt: Requests the model to rate the likelihood or feasibility of reaching the goal based on current information.
+	• value_last_step_prompt: Checks the correctness and completeness of a final solution based on specific constraints.
+
+Selection and Comparison Prompts: Used to compare multiple candidate answers or evaluate a single one against a scale.
+	• vote_prompt: Asks the model to choose the best option among multiple generated candidates.
+	• compare_prompt: Compares two outputs, typically for coherency or relevance, and selects the more suitable one.
+	• score_prompt: Requests the model to assign a numerical score to a single output, often for coherency or relevance.

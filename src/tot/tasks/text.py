@@ -30,6 +30,8 @@ class TextTask(Task):
         return self.data[idx]
     
     def test_output(self, idx: int, output: str):
+
+        # It splits the output, applies score_prompt, and then collects coherence scores.
         output = output.split('Passage:\n')[-1]
         prompt = score_prompt + output
         score_outputs = gpt(prompt, n=5, model='gpt-4')
@@ -58,6 +60,8 @@ class TextTask(Task):
 
     @staticmethod
     def vote_prompt_wrap(x: str, ys: list) -> str:
+        
+        # Each generated passage is presented as a choice within vote_prompt, and the model’s evaluation is interpreted to see which passage was voted the best.
         prompt = vote_prompt
         for i, y in enumerate(ys, 1):
             # y = y.replace('Plan:\n', '')

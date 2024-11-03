@@ -17,8 +17,12 @@ args = argparse.Namespace(
     method_select='greedy', 
     n_generate_sample=1, 
     n_evaluate_sample=3, 
-    n_select_sample=5)
+    n_select_sample=5
+)
 
 task = Game24Task()
+
+# calls the solve function from bfs.py, using the parameters in args and solving the task for the puzzle at index 900
+# The output ys[0] (the best solution candidate) is printed.
 ys, infos = solve(args, task, 900)
 print(ys[0])

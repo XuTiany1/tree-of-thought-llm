@@ -1,0 +1,56 @@
+[
+    {
+      "question": "What is the capital of the country where the inventor of the telephone was born?",
+      "context": [
+        [
+          "Alexander Graham Bell",
+          [
+            "Alexander Graham Bell was an inventor, scientist, and engineer who is credited with inventing and patenting the first practical telephone.",
+            "He was born on March 3, 1847, in Edinburgh, Scotland."
+          ]
+        ],
+        [
+          "Scotland",
+          [
+            "Scotland is a country that is part of the United Kingdom.",
+            "The capital of Scotland is Edinburgh."
+          ]
+        ],
+        [
+          "United Kingdom",
+          [
+            "The United Kingdom is a sovereign country located off the northwestern coast of mainland Europe.",
+            "It includes the island of Great Britain, the northeastern part of the island of Ireland, and many smaller islands."
+          ]
+        ]
+      ],
+      "answer": "Edinburgh"
+    },
+    {
+      "question": "Which chemical element has the atomic number equal to the number of planets in the Solar System?",
+      "context": [
+        [
+          "Solar System",
+          [
+            "The Solar System consists of the Sun and the astronomical objects gravitationally bound in orbit around it.",
+            "There are eight planets in the Solar System."
+          ]
+        ],
+        [
+          "Periodic Table",
+          [
+            "The periodic table lists all chemical elements ordered by atomic number.",
+            "Each element has a unique atomic number representing the number of protons in its nucleus."
+          ]
+        ],
+        [
+          "Oxygen",
+          [
+            "Oxygen is a chemical element with symbol O and atomic number 8.",
+            "It is a member of the chalcogen group on the periodic table."
+          ]
+        ]
+      ],
+      "answer": "Oxygen"
+    }
+  ]
