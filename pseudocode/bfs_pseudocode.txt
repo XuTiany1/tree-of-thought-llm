@@ -1,0 +1,76 @@
+
+--------
+WIKI Functions
+-------
+
+
+-> this would require making env a variable that is from the hotpotqa.py class so that bfs have access to it
+
+def execute_wiki_search(env, action):
+    attempts = 0
+    while attempts < 10:
+        try:
+            return env.step(action)
+        except requests.exceptions.Timeout:
+            attempts += 1
+
+
+
+
+
+within the solve function, 
+
+add a variable that keep tracks of the number of completed answers (which adds context with answer)
+        -> list_of_answers is a list of completed answers 
+
+
+
+add a section underneath GENERATION but above EVALUATE
+
+# REACT SEARCH
+
+    IF args.method_react_search == True:
+
+        FOR every y in new_ys:
+
+            PARSE their final actions
+            GET obs, r, done, info = step(env, action[0].lower() + action[1:])
+
+            CHECK if DONE:
+                IF DONE: then add this answer alongside its context to the list of completed answers 
+                REMOVE this node from new_ys, this will stop it from 
+
+                IF NOT DONE: then just add the observation to the continuation of the prompt
+
+
+
+add another section at the very end of the solve function
+This should be right outside the for-loop
+
+# FORCE completion
+For all the ys that we are still interested in, 
+    FORCE the finish
+        obs, r, done, info = step(env, "finish[]")
+    ADD to the list_of_answers
+
+THEN, we have a final grader
+This grader bascically checks which reasoning step is the best and conclude which answer is the best. 
+It should also see which logic processing is the best. 
+Then select that. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

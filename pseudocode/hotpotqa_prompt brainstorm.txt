@@ -1,0 +1,144 @@
+Step 1: 
+------------------------
+Model Generation
+------------------------
+GOAL: get the (thought + action) pairs of the model 
+
+
+-------------------------------PROPOSE SELECTION-------------------------------
+
+propose_prompt = '''
+Solve a question answering task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation, and Action can be three types: 
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+(3) Finish[answer], which returns the answer and finishes the task.
+Here are some examples.
+{examples}
+
+
+Now, given the current context of the question and the reasoning, provide 3 possible future reasoning paths
+For each path, provide a Thought and an associated Action.
+
+
+Example Structure:
+Question: What profession does Nicholas Ray and Elia Kazan have in common?
+Current context:
+
+Thought 1: I need to find out the professions of Nicholas Ray.
+Action 1: Search[Nicholas Ray]  
+Observation 1: Nicholas Ray was an American film director, screenwriter, and actor, best known for "Rebel Without a Cause".
+
+Thought 2: Now I need to find out the professions of Elia Kazan to see if they share any.
+Action 2: Search[Elia Kazan]  
+Observation 2: Elia Kazan was an American film and theatre director, producer, screenwriter, and actor.
+
+
+3 Possible Thought,Action pairs:
+Thought 1: I need to confirm whether Elia Kazan also worked as an actor.
+Action 1: Lookup[actor]
+
+Thought 2: I should verify if Nicholas Ray worked as a theatre director, which would be another shared profession.
+Action 2: Lookup[theatre director]
+
+Thought 3: I need to search if both Nicholas Ray and Elia Kazan are categorized under screenwriters on Wikipedia.
+Action 3: Search[Nicholas Ray, Elia Kazan screenwriter]
+
+
+Question: {question}
+Current context: 
+{context}
+3 Possible Thought,Action Pairs:
+'''
+
+
+
+
+Step 2: 
+------------------------
+Model Evaluation
+------------------------
+Use a value mechanism 
+
+value_prompt = '''
+Evaluate the likelihood that the following reasoning path will lead to the correct answer (high/medium/low). 
+Provide a brief justification for this evaluation.
+
+Question: What profession does Nicholas Ray and Elia Kazan have in common?
+
+Context:
+Thought 1: I need to find out the professions of Nicholas Ray.
+Action 1: Search[Nicholas Ray]  
+Observation 1: Nicholas Ray was an American film director, screenwriter, and actor, best known for "Rebel Without a Cause".
+
+Thought 2: Now I need to find out the professions of Elia Kazan to see if they share any.
+Action 2: Search[Elia Kazan]  
+Observation 2: Elia Kazan was an American film and theatre director, producer, screenwriter, and actor.
+
+Reasoning Path:
+Thought: Both Nicholas Ray and Elia Kazan worked as directors and screenwriters, so I need to check if they also share the actor role.
+Action: Lookup[actor]
+
+Evaluation: This reasoning path has a high likelihood of leading to the correct answer. Both individuals' professions have been partly identified, and the user is now verifying if they share the actor role, which is likely to conclude their shared professions.
+Likelihood: High
+
+Question: {question}
+
+Context:
+{reasoning_path}
+
+Evaluation:
+Likelihood: 
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

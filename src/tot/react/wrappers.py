@@ -80,8 +80,17 @@ def f1_score(prediction, ground_truth):
 class HotPotQAWrapper(gym.Wrapper):
   def __init__(self, env, split):
     super().__init__(env)
-    data_file = f"{DATA_DIR}/hotpotQA/{HOTPOTQA_SPLIT_FILE[split]}"
+    #data_file = f"../data/hotpotQA/{HOTPOTQA_SPLIT_FILE[split]}"
+    #self.data = json.load(open(data_file))
+
+
+
+    #hardcode
+    data_file=f"src/tot/data/hotpotQA/{HOTPOTQA_SPLIT_FILE[split]}"
     self.data = json.load(open(data_file))
+
+
+
     self.data = [(d['question'], d['answer']) for d in self.data]
     self.data_idx = 0
     self.split = split
